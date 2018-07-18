@@ -1,0 +1,243 @@
+<?php
+
+/**
+ * @file
+ * File to create custom entity for Cities.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function qed_city_menu() {
+  $items = array();
+
+  $items['qedcities/%qedcities'] = array(
+    'title' => 'QED Cities',
+    'page callback' => 'qedcities_view_entity',
+    'page arguments' => array(1),
+    'access arguments' => array('view entities'),
+    'type' => MENU_CALLBACK,
+    'file' => 'includes/qed_city.qedcities_view.inc'
+  );
+  $items['admin/structure/qedcities'] = array(
+    'title' => 'Cities Entity',
+    'access arguments' => array('administer qedcities entities'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['admin/settings/qed-migrate-field-map'] = array(
+    'title' => 'Define mongodb and drupal fields',
+    'description' => 'You can define mapping of both database fields.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('qed_city_migrate_field_map'),
+    'access arguments' => array('administer qed migrate field map settings'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+/**
+ * Define source and destination field mapping.
+ */
+function qed_city_migrate_field_map() {
+  $form = array();
+
+  $form['qed_migrate_field_map'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Define field mapping'),
+    '#default_value' => variable_get('qed_migrate_field_map'),
+    '#description' => t("Define field mapping in seprate row i.e: city_id:cid."),
+    '#required' => TRUE,
+  );
+
+  // Save the data in table.
+  return system_settings_form($form);
+}
+
+/**
+ * Implements hook_permission().
+ */
+function qed_city_permission() {
+  return array(
+    'administer qedcities entities' => array(
+      'title' => t('Administer Cities Entities'),
+      'description' => t('Allows a user to administer city entities'),
+    ),
+    'view qedcities entities' => array(
+      'title' => t('View Cities Entity'),
+      'description' => t('Allows a user to view the city entities.'),
+    ),
+    'create qedcities entities' => array(
+      'title' => t('Create Cities Entities'),
+      'description' => t('Allows a user to create city entities.'),
+    ),
+    'edit qedcities entities' => array(
+      'title' => t('Edit Cities Entities'),
+      'description' => t('Allows a user to edit city entities.'),
+    ),
+    'delete qedcities entities' => array(
+      'title' => t('Delete Cities Entities'),
+      'description' => t('Allows a user to delete city entities.'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_theme().
+ */
+function qed_city_theme($existing, $type, $theme, $path) {
+  return array(
+    'cities_entity_view' => array(
+      'variables' => array('element' => null),
+      'template' => 'cities-entity-view-template',
+      'path' => drupal_get_path('module', 'qed_city') . '/template',
+    ),
+  );
+}
+
+/**
+ * Implements hook_entity_info().
+ */
+function qed_city_entity_info() {
+  $entity_info['qedcities'] = array(
+    'label' => t('Cities'),
+    'label callback' => 'entity_class_label',
+    'entity class' => 'QedCities',
+    'controller class' => 'QedCitiesController',
+    'base table' => 'qed_city',
+    'uri callback' => 'entity_class_uri',
+    'fieldable' => TRUE,
+    'entity keys' => array(
+      'id' => 'id',
+    ),
+    'load hook' => 'qedcities_load',
+    'static cache' => TRUE,
+    'admin ui' => array(
+      'path' => 'admin/content/qedcities',
+      'controller class' => 'QedCitiesUIController',
+      'file' => 'includes/qedcities.admin.inc',
+    ),
+    'module' => 'qed_city',
+    'access callback' => 'qedcities_access_callback',
+    'bundles' => array(
+      'qedcities' => array(
+        'label' => 'City',
+        'admin' => array(
+          'path' => 'admin/structure/qedcities/manage',
+          'access arguments' => array('administer qedcities'),
+        ),
+      ),
+    ),
+    'views controller class' => 'EntityDefaultViewsController',
+  );
+
+  return $entity_info;
+}
+
+/**
+ * QedCities custom entity class.
+ */
+class QedCities extends Entity {
+
+  public function __construct($values = array()) {
+    parent::__construct($values, 'qedcities');
+  }
+
+  protected function defaultLabel() {
+    return isset($this->city_name) ? $this->city_name : '';
+  }
+
+  protected function defaultUri() {
+    return array('path' => 'qedcities/' . $this->identifier());
+  }
+
+}
+
+/**
+ * Custom controller for the QedCities entity.
+ */
+class QedCitiesController extends EntityAPIController {
+
+  /**
+   * Override the save method.
+   */
+  public function save($entity, DatabaseTransaction $transaction = NULL) {
+    if (isset($entity->is_new)) {
+      $entity->created = REQUEST_TIME;
+    }
+
+    $entity->changed = REQUEST_TIME;
+    return parent::save($entity, $transaction);
+  }
+
+}
+
+/**
+ * Custom controller for the administrator UI.
+ */
+class QedCitiesUIController extends EntityDefaultUIController {
+
+  /**
+   * Override the menu hook for default ui controller.
+   */
+  public function hook_menu() {
+    $items = parent::hook_menu();
+    $items[$this->path]['title'] = t('Cities');
+    $items[$this->path]['description'] = t('Manage Cities entity.');
+    $items[$this->path]['access callback'] = 'qedcities_access_callback';
+    $items[$this->path]['access arguments'] = array('administer qedcities entities');
+    $items[$this->path]['type'] = MENU_LOCAL_TASK;
+    return $items;
+  }
+
+}
+
+/**
+ * Menu autoloader.
+ */
+function qedcities_load($qedcities_id, $reset = FALSE) {
+  $qedcities = qedcities_load_multiple(array($qedcities_id), array(), $reset);
+  return reset($qedcities);
+}
+
+/**
+ * Load multiple qedcities.
+ */
+function qedcities_load_multiple($qedcities_ids = array(), $conditions = array(), $reset = FALSE) {
+  return entity_load('qedcities', $qedcities_ids, $conditions, $reset);
+}
+
+/**
+ * Deletes a qedcities.
+ */
+function qedcities_delete(QedCities $qedcities) {
+  $qedcities->delete();
+}
+
+/**
+ * Delete multiple qedcities.
+ */
+function qedcities_delete_multiple(array $qedcities_ids) {
+  entity_get_controller('qedcities')->delete($qedcities_ids);
+}
+
+/**
+ * Saves a qedcities to the database.
+ */
+function qedcities_save(QedCities $qedcities) {
+  return $qedcities->save();
+}
+
+
+/**
+ * qedcities access callback.
+ */
+function qedcities_access_callback() {
+  if (user_is_anonymous() && !user_access('administer qedcities entities')) {
+    return FALSE;
+  }
+  else {
+    return TRUE;
+  }
+}

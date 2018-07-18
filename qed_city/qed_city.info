@@ -1,0 +1,6 @@
+name = City entity
+description = Custom entity for cities
+package = Custom
+core = 7.x
+
+dependencies[] = entity

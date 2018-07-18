@@ -1,0 +1,11 @@
+name = Qed city migration
+description = Migrate cities from mongodb.
+package = Custom
+core = 7.x
+
+dependencies[] = migrate
+dependencies[] = migrate_ui
+dependencies[] = migrate_extras
+dependencies[] = qed_city
+
+files[] = includes/CityMigration.inc

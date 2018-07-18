@@ -1,0 +1,68 @@
+<?php
+
+/**
+ * Implements hook_schema().
+ */
+function qed_city_schema() {
+  $schema = array();
+
+  $schema['qed_city'] = array(
+    'description' => 'City table for Entity',
+    'fields' => array(
+      'id' => array(
+        'description' => 'Primary Key city entity',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'city_id' => array(
+        'description' => 'city id',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'city_name' => array(
+        'description' => 'City name',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'city_location' => array(
+        'description' => 'City location',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'city_pop' => array(
+        'description' => 'City population',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'city_state' => array(
+        'description' => 'City state',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'created' => array(
+        'description' => 'Created timestamp',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'changed' => array(
+        'description' => 'Changed timestamp',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('id'),
+    'indexes' => array(
+      'id' => array('id'),
+    ),
+  );
+  return $schema;
+}
